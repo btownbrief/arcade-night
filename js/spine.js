@@ -78,7 +78,7 @@ export function createFakeSpine({ games, seed = 5, startedAt }) {
       else if (score > cur.score) { cur.score = score; cur.at = Date.now(); }
     }
   }
-  bump(6);
+  bump(18);
   return {
     mode: () => 'demo',
     tick() { if (rnd() < 0.7) bump(1); },
