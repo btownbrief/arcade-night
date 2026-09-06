@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tonight · Arcade Finals Night</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Tonight's games. Tap one, play on your phone, your score lands on the wall.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0B0F1A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<!-- GoatCounter -->
+<script data-goatcounter="https://btown-brief.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+<main class="page">
+  <header><h1 id="title">Arcade <em>Finals Night</em></h1><span class="pill gold" id="code">—</span></header>
+  <p class="lede" id="lede">Tap a game, play it on your phone the normal way. Use the name you already play under. Your best score of the night goes on the wall.</p>
+  <div class="row" style="align-items:center;margin:16px 0 6px">
+    <div><div class="muted" style="font-size:12px;letter-spacing:.1em;text-transform:uppercase" id="clock-lbl">Time left</div><div class="clock" id="clock">—</div></div>
+    <div class="muted" id="sponsor" style="text-align:right;font-size:14px"></div>
+  </div>
+  <h2>Tonight's games</h2>
+  <ul class="list" id="games"><li class="muted">Loading…</li></ul>
+  <h2>How it scores</h2>
+  <p>Every game keeps its own board tonight. Each board pays <b>10, 7, 5, 3, 2</b> to the top five and <b>1</b> to anyone who played. Add them up across the games and the biggest number is <b>Player of the Night</b>. Ties go to whoever played more games, then more firsts.</p>
+  <p class="muted">No account. Your phone is your identity, same as in every Btown game; the name you set in one game is the name on the wall. Ask the host if you'd rather not be shown.</p>
+  <footer class="small">A <b>Btown Games</b> production · <a href="https://play.btownbrief.com/">More games →</a><br><a href="https://www.btownbrief.com" target="_blank" rel="noopener">Read the BTown Brief →</a></footer>
+</main>
+<script type="module" src="js/tonight.js"></script>
+<script src="https://play.btownbrief.com/ticker.js" defer></script>
+</body>
+</html>

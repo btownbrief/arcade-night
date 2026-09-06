@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Arcade Finals Night · Btown Games</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Set up a night of playing Btown games together: pick the games, get a code and a QR for the screen, and a scoreboard for the bar TV.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0B0F1A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta property="og:title" content="Arcade Finals Night">
+<meta property="og:description" content="A night of playing Btown games together, with a scoreboard on the wall.">
+<meta property="og:image" content="https://play.btownbrief.com/arcade-night/assets/icon-512.png">
+<meta property="og:url" content="https://play.btownbrief.com/arcade-night/">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<!-- GoatCounter -->
+<script data-goatcounter="https://btown-brief.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+<main class="page">
+  <header><h1>Arcade <em>Finals Night</em></h1><span class="pill">host setup</span></header>
+  <p class="lede">Pick tonight's games and a window. You get a code and a QR for the wall, a phone page that links people straight into the games, and a scoreboard for the bar TV. Players just play on their phones; the scores land where they always do.</p>
+
+  <form id="setup">
+    <div class="field"><label for="name">The night's name</label><input id="name" maxlength="60" placeholder="Arcade Finals Night" value="Arcade Finals Night" required></div>
+    <div class="field"><label for="sponsor">Presented by (optional)</label><input id="sponsor" maxlength="60" placeholder="a business name, or leave blank"></div>
+    <div class="row">
+      <div class="field"><label for="start">Starts</label><input id="start" type="datetime-local" required></div>
+      <div class="field"><label for="end">Ends</label><input id="end" type="datetime-local" required></div>
+    </div>
+    <div class="field"><label>Tonight's games (3 to 6 works best)</label><div class="games" id="games"><span class="muted">Loading the arcade…</span></div></div>
+    <div class="field"><label for="pass">Host passphrase (stays in this browser; unlocks the screen's host panel to hide a name)</label><input id="pass" type="password" autocomplete="new-password" placeholder="anything you'll remember tonight"></div>
+    <div class="err" id="err"></div>
+    <button class="btn" type="submit">Make the night</button>
+  </form>
+
+  <section class="result" id="result" hidden>
+    <div class="muted" style="font-size:12px;letter-spacing:.1em;text-transform:uppercase">Night code</div>
+    <div class="code" id="code"></div>
+    <div class="muted" id="when"></div>
+    <div class="qr" id="qr"></div>
+    <p class="muted">The QR opens tonight's phone page. Put it on the screen, a table card, or the poster.</p>
+    <a class="btn" id="open-screen" href="#" target="_blank" rel="noopener">Open the screen (laptop → TV)</a>
+    <a class="btn ghost" id="open-phone" href="#" target="_blank" rel="noopener">Open the phone page</a>
+    <div class="linkbox" id="link-screen"></div>
+    <div class="linkbox" id="link-phone"></div>
+    <div class="recipe">
+      <b>Host recipe</b>
+      <ol>
+        <li>Laptop to the TV: HDMI cable (any laptop, USB-C adapter if needed), or AirPlay from a Mac to an Apple TV. Set the TV to that input.</li>
+        <li>Open the screen link above in Chrome or Safari, press <b>F</b> for fullscreen. It rotates on its own.</li>
+        <li>Show the QR (it is on the screen every rotation) and say: scan it, pick a game, play on your phone.</li>
+        <li>At the end the screen switches to the trophy itself. Press <b>Space</b> to reveal early, <b>H</b> for the host panel.</li>
+        <li>Take the photo of the winner with the screen behind them. The share line is on the finale screen.</li>
+      </ol>
+    </div>
+  </section>
+
+  <p class="muted" style="margin-top:22px">Rehearse: <a href="screen.html?demo=1" target="_blank" rel="noopener">screen in demo mode</a> · <a href="tonight.html?demo=1" target="_blank" rel="noopener">phone page in demo mode</a>. Nothing is saved anywhere; the night lives in the link.</p>
+  <footer class="small">A <b>Btown Games</b> production · <a href="https://play.btownbrief.com/">More games →</a><br><a href="https://www.btownbrief.com" target="_blank" rel="noopener">Read the BTown Brief →</a></footer>
+</main>
+<script src="vendor/qrcode.min.js"></script>
+<script type="module" src="js/setup.js"></script>
+<script src="https://play.btownbrief.com/ticker.js" defer></script>
+</body>
+</html>

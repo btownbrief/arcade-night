@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Screen · Arcade Finals Night</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The big-screen scoreboard for a night of playing Btown games together.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0B0F1A">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<!-- GoatCounter -->
+<script data-goatcounter="https://btown-brief.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+</head>
+<body class="screen">
+<div class="stage" id="stage">
+  <header class="bar">
+    <div><div class="title" id="title">Arcade <em>Finals Night</em></div><div class="sponsor" id="sponsor"></div></div>
+    <div class="clockbox" id="clockbox"><div class="lbl" id="clock-lbl">Time left</div><div class="clock" id="clock">—</div></div>
+  </header>
+  <section class="panel" id="panel"></section>
+  <footer class="ticker">
+    <div class="live" id="live">Scores land as people play · read from the arcade leaderboards</div>
+    <div class="dots" id="dots"></div>
+    <div id="code-line">Night <b class="gold" id="code">—</b> · <span class="muted">H for host · Space to reveal · F fullscreen</span></div>
+  </footer>
+</div>
+<div class="feed" id="feed"></div>
+<div class="finale" id="finale" hidden>
+  <div>
+    <div class="trophy">🏆</div>
+    <div class="lbl" id="fin-lbl">Player of the Night</div>
+    <div class="name" id="fin-name">—</div>
+    <div class="pts" id="fin-pts"></div>
+    <div class="runners" id="fin-runners"></div>
+    <div class="share" id="fin-share"></div>
+    <div class="sponsor" id="fin-sponsor"></div>
+  </div>
+</div>
+<div id="confetti" aria-hidden="true"></div>
+<div class="host" id="host" hidden>
+  <h3>Host panel</h3>
+  <div id="host-lock">
+    <input id="host-pass" type="password" placeholder="passphrase from setup" autocomplete="off">
+    <div class="hb"><button class="primary" id="host-unlock">Unlock</button><button id="host-close">Close</button></div>
+    <div class="keys">The passphrase lives only in the browser that ran setup. In demo the passphrase is <b>demo</b>.</div>
+  </div>
+  <div id="host-tools" hidden>
+    <input id="hide-name" placeholder="name to hide from the wall" autocomplete="off">
+    <div class="hb"><button class="primary" id="hide-go">Hide</button><button id="unhide-all">Unhide all</button><button id="reveal">Reveal now</button><button id="unreveal">Back to board</button><button id="host-close2">Close</button></div>
+    <div class="hidden-list" id="hidden-list"></div>
+    <div class="keys" id="host-mode"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="vendor/qrcode.min.js"></script>
+<script type="module" src="js/screen.js"></script>
+</body>
+</html>

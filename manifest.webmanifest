@@ -1,0 +1,14 @@
+{
+  "name": "Arcade Finals Night",
+  "short_name": "Arcade Night",
+  "description": "A night of playing Btown games together, with a scoreboard on the wall. A Btown Games production.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0B0F1A",
+  "theme_color": "#0B0F1A",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "assets/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
