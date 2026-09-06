@@ -3,14 +3,20 @@
 // never submits a score; players play the games on their phones and the games
 // write to the spine as they always do.
 //
-// Two read paths, tried in order:
-//   1. get_night_board(p_game, p_since)  — rows updated since the night began.
-//      Not in the spine yet: the SQL to add it is in supabase/arcade-night-READ.sql.
-//   2. get_leaderboard(p_game, p_month)  — the monthly top 100, which IS in the
-//      spine. The screen snapshots each board when the night opens (localStorage)
-//      and counts anyone whose monthly best rose, or who appeared, since then.
-//      Limitation, stated on the screen: a player who plays tonight but does not
-//      beat their own monthly best is invisible to this path.
+// What the wall can honestly show, given the spine (one row per game/player/month
+// holding the monthly best, and updated_at bumped on EVERY submission, even a
+// worse one):
+//   * SCORE for tonight: the snapshot rule. Each board is snapshotted when the
+//     night opens (localStorage); a player counts with a score only if their
+//     monthly best rose, or they appeared, since then. This is the only signal
+//     that a score was achieved tonight.
+//   * PLAYED tonight: get_night_board(p_game, p_since, p_until), if pasted
+//     (supabase/arcade-night-READ.sql), lists who submitted inside the window.
+//     Those without a risen best show as "played, no new best" and earn the
+//     1-point participation mark, never a score.
+//   * Blind spots, stated on the screen: a play that did not beat the player's
+//     monthly best has no score here; nobody can prove who is in the room (the
+//     spine has no channel for a night token). Reads stop at the end time.
 import { monthKey, tonightRows } from './core.js';
 
 export const SUPABASE_URL = 'https://jnouvwxomrcffqwilqkq.supabase.co';
@@ -42,19 +48,21 @@ export function createSpine({ storage = null } = {}) {
 
   return {
     mode: () => (nightRpc ? 'window' : 'baseline'),
-    /** rows that count as tonight for one game: [{player_id, name, score}] sorted desc */
-    async tonight(night, slug, sinceIso, now) {
-      if (nightRpc !== false) {
-        try {
-          const rows = await rpc('get_night_board', { p_game: slug, p_since: sinceIso });
-          nightRpc = true;
-          return (rows || []).map((r) => ({ player_id: r.player_id, name: r.name, score: r.score })).sort((a, b) => b.score - a.score);
-        } catch (e) { if (e.code !== 'not_ready') throw e; nightRpc = false; }
-      }
+    /** rows that count as tonight for one game, scored ones first:
+     *  [{player_id, name, score}] where score is null for "played, no new best" */
+    async tonight(night, slug, sinceIso, untilIso, now) {
       const current = (await rpc('get_leaderboard', { p_game: slug, p_month: monthKey(now) })) || [];
       let base = loadBaseline(night, slug);
       if (!base) { base = current; saveBaseline(night, slug, base); }
-      return tonightRows(base, current);
+      const scored = tonightRows(base, current);
+      if (nightRpc === false) return scored;
+      try {
+        const played = await rpc('get_night_board', { p_game: slug, p_since: sinceIso, p_until: untilIso });
+        nightRpc = true;
+        const have = new Set(scored.map((r) => r.player_id));
+        const extra = (played || []).filter((r) => !have.has(r.player_id)).map((r) => ({ player_id: r.player_id, name: r.name, score: null }));
+        return scored.concat(extra.sort((a, b) => a.name.localeCompare(b.name)));
+      } catch (e) { if (e.code !== 'not_ready') throw e; nightRpc = false; return scored; }
     },
     /** the plain monthly board (for the "how it usually looks" fallback) */
     async monthly(slug, now) { return (await rpc('get_leaderboard', { p_game: slug, p_month: monthKey(now) })) || []; },
@@ -83,6 +91,7 @@ export function createFakeSpine({ games, seed = 5, startedAt }) {
     mode: () => 'demo',
     tick() { if (rnd() < 0.7) bump(1); },
     async tonight(night, slug) { return [...(boards.get(slug) || [])].sort((a, b) => b.score - a.score).map(({ player_id, name, score }) => ({ player_id, name, score })); },
+    stop() { this.tick = () => {}; },
     async monthly(slug) { return this.tonight(null, slug); },
     resetBaselines() {},
     startedAt,

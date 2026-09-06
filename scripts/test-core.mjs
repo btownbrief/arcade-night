@@ -68,6 +68,17 @@ test('Player of the Night: rank points, ties by games played then firsts', () =>
   assert.equal(C.rankPointsFor(0), 10); assert.equal(C.rankPointsFor(4), 2); assert.equal(C.rankPointsFor(9), 1);
 });
 
+test('played-no-new-best rows rank last and earn only the participation point', () => {
+  const rows = C.sortTonight([{ player_id: 'x', name: 'Xa', score: null }, { player_id: 'a', name: 'Ann', score: 5 }, { player_id: 'b', name: 'Bob', score: 9 }]);
+  assert.deepEqual(rows.map((r) => r.name), ['Bob', 'Ann', 'Xa']);
+  const s = C.playerOfTheNight({ g: rows });
+  assert.equal(s[0].name, 'Bob'); assert.equal(s[0].pts, 10);
+  assert.equal(s[1].name, 'Ann'); assert.equal(s[1].pts, 7);
+  assert.equal(s[2].name, 'Xa'); assert.equal(s[2].pts, C.PLAYED_POINTS);
+  const txt = C.shareText({ ...cfg, boards: { g: [{ player_id: 'x', name: 'Xa', score: null }] } }, s, { g: 'G' });
+  assert.ok(!/G: Xa/.test(txt), 'a null score never prints as a board leader');
+});
+
 test('rotation and share text', () => {
   const r = C.rotation(cfg.games);
   assert.deepEqual(r.map((p) => p.kind), ['game', 'game', 'game', 'overall', 'how']);

@@ -28,25 +28,37 @@ Every game on the night keeps its own board of tonight's scores. Each board pays
 the games and the biggest number is **Player of the Night**. Ties: more games
 played, then more boards won, then name. (`playerOfTheNight` in `js/core.js`.)
 
-## Where the scores come from (and the one thing to paste)
+## Where the scores come from, and what the wall cannot know
 
 Nothing here writes anything. The games write to the shared arcade leaderboard
-spine as they always do (`maple-scramble/supabase/schema.sql`: one row per game,
-player and month holding the player's monthly best, with `updated_at`). The
-screen reads it two ways:
+spine as they always do (`maple-scramble/supabase/schema.sql`). Two facts about
+that spine decide what this screen can honestly claim:
 
-1. **`get_night_board(p_game, p_since)`**, a read-only RPC that returns the rows
-   touched since the night began. It is not in the spine yet: **paste
-   `supabase/arcade-night-READ.sql`** into the Supabase SQL editor once. Adds one
-   function, changes no tables, grants execute to anon like the existing reads.
-2. **Fallback, works today:** `get_leaderboard(p_game, p_month)`, which the spine
-   already has. The screen snapshots each board when the night opens (in the
-   laptop's localStorage) and counts anyone whose monthly best rose, or who
-   appeared, since then.
+- It keeps **one row per game, player and month**: the player's monthly best.
+- `submit_score` sets `updated_at = now()` on **every** submission, even a worse
+  one. So a timestamp inside the night means "submitted tonight", not "this score
+  was achieved tonight".
 
-What neither path can see: a player who plays tonight but does not beat their own
-monthly best. That is how the spine works (best per month), not a bug here; the
-screen's footer says which read mode it is in.
+What the screen does with that:
+
+1. **Scores, the snapshot rule.** When the night opens the screen snapshots each
+   monthly board (laptop localStorage). A player counts with a score only if their
+   monthly best rose, or they appeared, since then. That is the only signal that a
+   score was achieved tonight.
+2. **Attendance, optional.** `get_night_board(p_game, p_since, p_until)` in
+   `supabase/arcade-night-READ.sql` lists who submitted inside the night's window
+   (hard-bounded by the end time). Players in that list without a risen best show
+   as "played · no new best" and get the 1-point participation mark, never a score.
+   Paste it once if you want that line; the screen works without it.
+3. **Hard end.** Reads stop at the end time and the trophy freezes there.
+
+What it cannot do, and says so in its footer: score a play that did not beat the
+player's own monthly best, or prove who is in the room. The spine has no channel
+for a night token (`submit_score` takes game, player, token, name and score, and
+the name is set inside each game, not by the phone page), so "only people who
+scanned the QR" is not enforceable without changing every game. Treat the wall
+as the evening's story, not a court of record; the T9 run sheet already says the
+final is played live on the projector and the boards are only the invitation.
 
 ## Names, hiding, privacy
 

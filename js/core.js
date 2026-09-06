@@ -84,6 +84,10 @@ export function tonightRows(baseline, current) {
     .map((r) => ({ player_id: r.player_id, name: r.name, score: r.score }))
     .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
 }
+/** rows with a null score ("played, no new best") rank after every scored row */
+export function sortTonight(rows) {
+  return [...rows].sort((a, b) => (b.score == null ? -1 : b.score) - (a.score == null ? -1 : a.score) || a.name.localeCompare(b.name));
+}
 export function applyHidden(rows, hidden) {
   const h = new Set((hidden || []).map((x) => String(x).toLowerCase()));
   return rows.filter((r) => !h.has(String(r.player_id).toLowerCase()) && !h.has(String(r.name).toLowerCase()));
@@ -93,12 +97,14 @@ export function applyHidden(rows, hidden) {
 // Per game: 1st 10, 2nd 7, 3rd 5, 4th 3, 5th 2, everyone else who played 1.
 // Sum across tonight's games. Ties: more games played, then more firsts, then name.
 export function rankPointsFor(position) { return position < RANK_POINTS.length ? RANK_POINTS[position] : PLAYED_POINTS; }
-export function playerOfTheNight(boards) { // boards: { slug: rows (already tonight-filtered, sorted) }
+export function playerOfTheNight(boards) { // boards: { slug: rows (already tonight-filtered, sorted; score null = played, no new best) }
   const tally = new Map();
   for (const [slug, rows] of Object.entries(boards)) {
-    rows.forEach((r, i) => {
+    let scoredPos = 0;
+    rows.forEach((r) => {
       const key = r.player_id || r.name;
       const t = tally.get(key) || { player_id: r.player_id, name: r.name, pts: 0, games: 0, firsts: 0, per: {} };
+      const i = r.score == null ? RANK_POINTS.length : scoredPos++;
       const pts = rankPointsFor(i);
       t.pts += pts; t.games += 1; if (i === 0) t.firsts += 1; t.per[slug] = { rank: i + 1, pts, score: r.score };
       t.name = r.name; tally.set(key, t);
@@ -122,7 +128,7 @@ export function shareText(cfg, standings, gameNames) {
   if (top) lines.push(`Player of the Night: ${top.name} — ${top.pts} pts across ${top.games} game${top.games === 1 ? '' : 's'}`);
   const rest = standings.slice(1, 3).map((p, i) => `${i + 2}. ${p.name} (${p.pts})`);
   if (rest.length) lines.push(rest.join(' · '));
-  for (const [slug, rows] of Object.entries(cfg.boards || {})) if (rows[0]) lines.push(`${gameNames[slug] || slug}: ${rows[0].name} ${rows[0].score.toLocaleString('en-US')}`);
+  for (const [slug, rows] of Object.entries(cfg.boards || {})) if (rows[0] && rows[0].score != null) lines.push(`${gameNames[slug] || slug}: ${rows[0].name} ${rows[0].score.toLocaleString('en-US')}`);
   lines.push('play.btownbrief.com');
   return lines.join('\n');
 }

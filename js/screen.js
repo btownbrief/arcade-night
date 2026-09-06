@@ -2,7 +2,7 @@
 // and the how-to-play panel; counts down; flips to the trophy at the end.
 // Read-only against the spine (js/spine.js). ?demo=1 streams fake scores.
 /* global qrcode */
-import { decodeNight, nightCode, phase, countdown, rotation, playerOfTheNight, applyHidden, shareText, fmtScore, ordinal } from './core.js';
+import { decodeNight, nightCode, phase, countdown, rotation, playerOfTheNight, applyHidden, sortTonight, shareText, fmtScore, ordinal } from './core.js';
 import { createSpine, createFakeSpine } from './spine.js';
 
 const $ = (id) => document.getElementById(id);
@@ -69,11 +69,13 @@ function rotate() {
 }
 
 async function refresh() {
-  if (S.spine.tick) S.spine.tick();
   const now = Date.now();
+  // Hard bound: nothing read after the end time. The trophy is decided at the deadline.
+  if (phase(S.cfg, now) === 'over') { if (S.spine.stop) S.spine.stop(); if (!S.revealed) reveal(); return; }
+  if (S.spine.tick) S.spine.tick();
   for (const slug of S.cfg.games) {
     try {
-      const rows = await S.spine.tonight(S.code, slug, S.cfg.start, now);
+      const rows = sortTonight(await S.spine.tonight(S.code, slug, S.cfg.start, S.cfg.end, now));
       const prevTop = S.boards[slug]?.[0];
       S.boards[slug] = applyHidden(rows, S.hidden);
       const top = S.boards[slug][0];
@@ -85,15 +87,16 @@ async function refresh() {
     }
   }
   if (!S.lastSeen.size) for (const slug of S.cfg.games) for (const r of S.boards[slug] || []) S.lastSeen.set(`${slug}:${r.player_id}`, r.score);
-  if (!DEMO && S.spine.mode) $('live').textContent = S.spine.mode() === 'window' ? 'Scores land as people play · tonight\'s window read from the arcade leaderboards' : 'Scores land as people play · counting every monthly best that rose since the night opened';
+  if (!DEMO && S.spine.mode) $('live').textContent = S.spine.mode() === 'window'
+    ? 'Monthly bests that rose since the night opened, plus who submitted tonight · a play that did not beat your own monthly best has no score here'
+    : 'Monthly bests that rose since the night opened · a play that did not beat your own monthly best has no score here';
   render();
-  if (phase(S.cfg, now) === 'over' && !S.revealed) reveal();
 }
 
 function render() {
   for (const el of document.querySelectorAll('.board[data-slug]')) {
     const rows = (S.boards[el.dataset.slug] || []).slice(0, 10);
-    el.innerHTML = rows.length ? rows.map((r, i) => `<div class="r${i === 0 ? ' first' : ''}"><span class="rk">${i + 1}</span><span class="nm">${esc(r.name)}</span><span class="sc">${fmtScore(r.score)}</span></div>`).join('') : '<div class="empty">Nobody has played this one yet tonight. Go on.</div>';
+    el.innerHTML = rows.length ? rows.map((r, i) => `<div class="r${i === 0 && r.score != null ? ' first' : ''}"><span class="rk">${r.score == null ? '·' : i + 1}</span><span class="nm">${esc(r.name)}</span><span class="sc">${r.score == null ? '<span class="games">played · no new best</span>' : fmtScore(r.score)}</span></div>`).join('') : '<div class="empty">Nobody has played this one yet tonight. Go on.</div>';
   }
   const standings = playerOfTheNight(S.boards);
   const el = document.querySelector('.board[data-overall]');
@@ -137,7 +140,7 @@ async function unlock() {
   const ok = DEMO ? typed === 'demo' : (stored ? (await sha(typed)) === stored : typed.length > 0);
   if (!ok) { toast('Not the passphrase from setup.'); return; }
   S.unlocked = true; openHost();
-  $('host-mode').textContent = DEMO ? 'Demo: fake scores stream in every few seconds.' : `Read mode: ${S.spine.mode() === 'window' ? 'tonight\'s window (get_night_board)' : 'baseline diff over the monthly boards (add supabase/arcade-night-READ.sql for a true window)'}.`;
+  $('host-mode').textContent = DEMO ? 'Demo: fake scores stream in every few seconds.' : `Scores: snapshot rule (monthly bests that rose since the night opened). Attendance: ${S.spine.mode() === 'window' ? 'get_night_board lists who submitted tonight' : 'not available until supabase/arcade-night-READ.sql is pasted'}. Reads stop at the end time.`;
 }
 function renderHidden() { $('hidden-list').textContent = S.hidden.length ? `Hidden: ${S.hidden.join(', ')}` : 'Nobody hidden.'; }
 function hide(name) {
