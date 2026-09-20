@@ -79,6 +79,27 @@ test('played-no-new-best rows rank last and earn only the participation point', 
   assert.ok(!/G: Xa/.test(txt), 'a null score never prints as a board leader');
 });
 
+test('a null score never outranks a real one, however low the real one is', () => {
+  // The old comparator substituted -1 for "no score", so any genuine score of
+  // -1 or below sorted below a player who had not scored at all. Games are free
+  // to score negatively, and 0 is a real result in several of them.
+  const rows = C.sortTonight([
+    { player_id: 'n', name: 'Nil', score: null },
+    { player_id: 'z', name: 'Zed', score: 0 },
+    { player_id: 'm', name: 'Moe', score: -40 },
+    { player_id: 'q', name: 'Quinn', score: -1 },
+  ]);
+  assert.deepEqual(rows.map((r) => r.name), ['Zed', 'Quinn', 'Moe', 'Nil']);
+  const s = C.playerOfTheNight({ g: rows });
+  assert.equal(s.find((p) => p.name === 'Nil').pts, C.PLAYED_POINTS, 'turning up is still worth the played point');
+  assert.equal(s.find((p) => p.name === 'Moe').pts, 5, 'a negative score is a third place, not a non-entry');
+});
+
+test('two null scores fall back to name order', () => {
+  const rows = C.sortTonight([{ player_id: 'b', name: 'Bea', score: null }, { player_id: 'a', name: 'Abe', score: null }]);
+  assert.deepEqual(rows.map((r) => r.name), ['Abe', 'Bea']);
+});
+
 test('rotation and share text', () => {
   const r = C.rotation(cfg.games);
   assert.deepEqual(r.map((p) => p.kind), ['game', 'game', 'game', 'overall', 'how']);
