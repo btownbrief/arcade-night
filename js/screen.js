@@ -17,7 +17,7 @@ function demoNight() {
   return { name: 'Arcade Finals Night', sponsor: 'Demo Brewing Co.', games: ['maple-scramble', 'btown-hangman', 'flappy-champ', 'btown-riddle'], start: new Date(now.getTime() - 20 * 60e3).toISOString(), end: new Date(now.getTime() + mins * 60e3).toISOString() };
 }
 
-const S = { cfg: null, enc: '', code: '', roster: {}, boards: {}, hidden: [], panels: [], idx: 0, timer: null, revealed: false, unlocked: false, lastSeen: new Map(), spine: null };
+const S = { cfg: null, enc: '', code: '', roster: {}, boards: {}, raw: {}, hidden: [], panels: [], idx: 0, timer: null, revealed: false, unlocked: false, lastSeen: new Map(), spine: null, poll: null, finalRead: false, reading: false };
 
 async function main() {
   S.enc = qs.get('n') || '';
@@ -35,7 +35,15 @@ async function main() {
   buildPanels();
   await refresh();
   rotate();
-  setInterval(refresh, POLL_MS);
+  // A screen opened after the night is over has already taken its one read and
+  // frozen inside that first refresh(); don't start a poll it would only stop.
+  const toEnd = Date.parse(S.cfg.end) - Date.now();
+  if (toEnd > 0) {
+    S.poll = setInterval(() => refresh(), POLL_MS);
+    // …and one read pinned to the deadline itself, so a score set in the last
+    // poll window (up to 20 s of play) still counts toward the trophy.
+    setTimeout(() => refresh(Date.parse(S.cfg.end)), toEnd + 200);
+  }
   setInterval(clock, 1000); clock();
   document.addEventListener('keydown', onKey);
   window.__night = S;
@@ -68,15 +76,28 @@ function rotate() {
   S.timer = setTimeout(() => { S.idx = (S.idx + 1) % S.panels.length; rotate(); }, p.ms);
 }
 
-async function refresh() {
-  const now = Date.now();
-  // Hard bound: nothing read after the end time. The trophy is decided at the deadline.
-  if (phase(S.cfg, now) === 'over') { if (S.spine.stop) S.spine.stop(); if (!S.revealed) reveal(); return; }
+/** One poll of every board. `at` overrides the clock so the last read can be
+ *  pinned to the deadline. Nothing counts after the end time — the trophy is
+ *  decided there — but we must read exactly ONCE at the deadline before
+ *  freezing, or two things go wrong: scores set inside the last poll window
+ *  never land, and a screen reloaded after the night is over reveals an empty
+ *  trophy because it froze before it had read anything. */
+async function refresh(at) {
+  const now = at != null ? at : Date.now();
+  const end = Date.parse(S.cfg.end);
+  const over = phase(S.cfg, now) === 'over';
+  if (over && S.finalRead) { freeze(); return; }
+  if (over) S.finalRead = true;          // set before the await: one final read, not one per tick
+  S.reading = true;
   if (S.spine.tick) S.spine.tick();
+  // Read as of the deadline once we are past it, so the monthly key the spine
+  // derives still belongs to the night and not to the month that just started.
+  const readAt = Math.min(now, end - 1);
   for (const slug of S.cfg.games) {
     try {
-      const rows = sortTonight(await S.spine.tonight(S.code, slug, S.cfg.start, S.cfg.end, now));
+      const rows = sortTonight(await S.spine.tonight(S.code, slug, S.cfg.start, S.cfg.end, readAt));
       const prevTop = S.boards[slug]?.[0];
+      S.raw[slug] = rows;                  // hiding is a view, so keep what we read
       S.boards[slug] = applyHidden(rows, S.hidden);
       const top = S.boards[slug][0];
       if (top && (!prevTop || top.player_id !== prevTop.player_id || top.score !== prevTop.score) && S.lastSeen.size) feedToast(`<b>${esc(top.name)}</b> leads ${esc(gameName(slug))} with <b>${fmtScore(top.score)}</b>`);
@@ -91,6 +112,15 @@ async function refresh() {
     ? 'Monthly bests that rose since the night opened, plus who submitted tonight · a play that did not beat your own monthly best has no score here'
     : 'Monthly bests that rose since the night opened · a play that did not beat your own monthly best has no score here';
   render();
+  S.reading = false;
+  if (over) freeze();
+}
+
+/** Stop reading and put the trophy up. Safe to call more than once. */
+function freeze() {
+  if (S.spine.stop) S.spine.stop();
+  clearInterval(S.poll); S.poll = null;
+  if (!S.revealed) reveal();
 }
 
 function render() {
@@ -109,7 +139,10 @@ function clock() {
   $('clock-lbl').textContent = ph === 'before' ? 'Starts in' : ph === 'over' ? 'Final' : 'Time left';
   $('clock').textContent = ph === 'over' ? '0:00' : c.text;
   $('clockbox').classList.toggle('warn', ph === 'live' && c.ms < 5 * 60e3);
-  if (ph === 'over' && !S.revealed) reveal();
+  // Don't reveal behind the final read's back: refresh() puts the trophy up
+  // itself when it finishes. This is only the catch-up path (a tab that was
+  // asleep through the deadline, or a missed timer).
+  if (ph === 'over' && !S.revealed && !S.reading) { if (S.finalRead) reveal(); else refresh(now); }
 }
 
 function reveal() {
@@ -146,10 +179,14 @@ function renderHidden() { $('hidden-list').textContent = S.hidden.length ? `Hidd
 function hide(name) {
   const n = name.trim(); if (!n) return;
   S.hidden.push(n); try { localStorage.setItem(`an-hidden-${S.code}`, JSON.stringify(S.hidden)); } catch { /* ignore */ }
-  for (const slug of S.cfg.games) S.boards[slug] = applyHidden(S.boards[slug] || [], S.hidden);
+  reapplyHidden();
   render(); renderHidden(); $('hide-name').value = ''; toast(`${n} is off the wall.`);
 }
-function unhideAll() { S.hidden = []; try { localStorage.removeItem(`an-hidden-${S.code}`); } catch { /* ignore */ } refresh(); renderHidden(); }
+// Re-derive every board from the last rows we read. Filtering S.boards in place
+// worked only while a poll was coming to undo it; after the deadline the reads
+// have stopped, and unhiding someone has to put them back from what we kept.
+function reapplyHidden() { for (const slug of S.cfg.games) S.boards[slug] = applyHidden(S.raw[slug] || [], S.hidden); }
+function unhideAll() { S.hidden = []; try { localStorage.removeItem(`an-hidden-${S.code}`); } catch { /* ignore */ } reapplyHidden(); render(); renderHidden(); }
 $('host-unlock').addEventListener('click', unlock);
 $('host-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') unlock(); });
 $('host-close').addEventListener('click', closeHost); $('host-close2').addEventListener('click', closeHost);

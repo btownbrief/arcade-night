@@ -84,9 +84,15 @@ export function tonightRows(baseline, current) {
     .map((r) => ({ player_id: r.player_id, name: r.name, score: r.score }))
     .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
 }
-/** rows with a null score ("played, no new best") rank after every scored row */
+/** rows with a null score ("played, no new best") rank after every scored row.
+ *  "No score" is its own key rather than a stand-in number: substituting -1
+ *  put a null row ahead of any real score of -1 or less, and games are free to
+ *  score negatively (or to use 0 as a real result). */
 export function sortTonight(rows) {
-  return [...rows].sort((a, b) => (b.score == null ? -1 : b.score) - (a.score == null ? -1 : a.score) || a.name.localeCompare(b.name));
+  return [...rows].sort((a, b) =>
+    ((a.score == null) - (b.score == null)) ||        // scored rows first
+    ((b.score ?? 0) - (a.score ?? 0)) ||              // then highest score
+    a.name.localeCompare(b.name));
 }
 export function applyHidden(rows, hidden) {
   const h = new Set((hidden || []).map((x) => String(x).toLowerCase()));
@@ -95,6 +101,11 @@ export function applyHidden(rows, hidden) {
 
 // ---- Player of the Night ----
 // Per game: 1st 10, 2nd 7, 3rd 5, 4th 3, 5th 2, everyone else who played 1.
+// A row with a null score ("played, no new best" — they turned up but did not
+// beat their own monthly best) is not a non-entry: it sorts below every scored
+// row, is treated as position 6 and so earns the 1 played point, and it counts
+// toward that player's `games` total, which is the first tie-break. Turning up
+// and playing is always worth something.
 // Sum across tonight's games. Ties: more games played, then more firsts, then name.
 export function rankPointsFor(position) { return position < RANK_POINTS.length ? RANK_POINTS[position] : PLAYED_POINTS; }
 export function playerOfTheNight(boards) { // boards: { slug: rows (already tonight-filtered, sorted; score null = played, no new best) }
